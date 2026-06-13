@@ -19,12 +19,12 @@ class DownloaderApp( ctk.CTk ):
         super().__init__()
 
         # Instantiate DownloadEngine
-        self.download_engine = DownloadEngine()
+        self.download_engine = DownloadEngine( self.write_to_log )
 
         # -- Main window --
         self.title( "My Media Downloader V1" )
         self.geometry( "+500+300" )
-        self.resizable( False, False )
+        # self.resizable( False, False )
         self.grid_columnconfigure( 0, weight=1 )
 
         # -- UI Elements --
@@ -192,7 +192,7 @@ class DownloaderApp( ctk.CTk ):
             command=self.trigger_cancel,
             font=ctk.CTkFont( weight="bold" ),
             fg_color="red",
-            hover_color="dark-red"
+            hover_color="darkred"
         )
         self.cancel_btn.grid(
             row=self.row,
@@ -203,6 +203,24 @@ class DownloaderApp( ctk.CTk ):
         )
         self.row += 1
         self.cancel_btn.grid_remove()
+
+        # Logs Textbox
+        self.logs_textbox = ctk.CTkTextbox(
+            self,
+            width=550,
+            height=150,
+            font=( "Courier", 12 )
+        )
+        self.logs_textbox.grid(
+            row=self.row,
+            column=0,
+            padx=10,
+            pady=10,
+            sticky="ew"
+        )
+        self.row += 1
+        self.logs_textbox.configure( state="disabled" ) # Disabled to avoid user inputs
+        self.logs_textbox.grid_remove() # Hidden at first, shown after a download is started
 
     # Function to trigger show/hide audio widget based on radio button choice
     def toggle_mode_selection( self, selectedValue ):
@@ -234,6 +252,24 @@ class DownloaderApp( ctk.CTk ):
         # Call DownloadEngine cancellation to stop processes
         self.download_engine.CancelProcess()
 
+    # Safe method to add text to Logs gui textbox
+    def write_to_log( self, message ):
+        self.after( 0, self.append_to_logs, f"{message}\n" )
+
+    # Actually append text to the logs textbox
+    def append_to_logs( self, text ):
+        self.logs_textbox.configure( state="normal" )
+        self.logs_textbox.insert( "end", text ) # add text at the end 
+        self.logs_textbox.see( "end" )  # auto-scroll to the end
+        self.logs_textbox.configure( state="disabled" )
+
+    # Empty logs
+    def wipe_logs( self ):
+        self.logs_textbox.configure( state="normal" )
+        self.logs_textbox.delete( "0.0", "end" )
+        self.logs_textbox.see( "0.0" )
+        self.logs_textbox.configure( state="disabled" )
+    
     # Logic behind clicking the "Download" button
     # Start the download logic in a thread so the GUI does not freeze up
     def start_download_thread( self ):
@@ -247,14 +283,14 @@ class DownloaderApp( ctk.CTk ):
         self.audioinput_frame.disable_entry()
         # Show cancel button
         self.cancel_btn.grid()
+        # Show Logs textbox
+        self.logs_textbox.grid()
+        self.wipe_logs()
         
         # Get selected Mode, Video URL & Audio URL
         modeSelected = self.modetoggle_frame.get().strip()
         videoUrl = self.videoinput_frame.get().strip()
         audioUrl = self.audioinput_frame.get().strip()
-        print("mode selected:",modeSelected)
-        print("vid url:",videoUrl)
-        print("aud url:",audioUrl)
 
         # Hide all error messages
         self.videoinput_frame.hide_error_message()
@@ -292,7 +328,7 @@ class DownloaderApp( ctk.CTk ):
 
     # Core Download Logic
     def execute_download( self ):
-        successfulStatus = ""
+        download_status = ""
         
         # Get selected Mode, Video URL & Audio URL
         modeSelected = self.modetoggle_frame.get().strip()
@@ -304,15 +340,15 @@ class DownloaderApp( ctk.CTk ):
         # Download the video, audio provided
         if modeSelected == "single":
             # Download video only / combined url
-            successfulStatus = self.download_engine.StartDownload( videoUrl=videoUrl, audioUrl=None, formatPreset=selected_format, userOutputPath=output_final_destination )
+            download_status = self.download_engine.StartDownload( videoUrl=videoUrl, audioUrl=None, formatPreset=selected_format, userOutputPath=output_final_destination )
         elif modeSelected == "split":
             # Download both video url and audio url, and merge them
-            successfulStatus = self.download_engine.StartDownload( videoUrl=videoUrl, audioUrl=audioUrl, formatPreset=None, userOutputPath=output_final_destination )
+            download_status = self.download_engine.StartDownload( videoUrl=videoUrl, audioUrl=audioUrl, formatPreset=None, userOutputPath=output_final_destination )
 
-        if successfulStatus == "failed":
-            self.after( 0, self.download_complete( success=successfulStatus, errorfield="other" ) )
+        if download_status == "failed":
+            self.after( 0, self.download_complete( success=download_status, errorfield="other" ) )
         else:
-            self.after( 0, self.download_complete( success=successfulStatus ) )
+            self.after( 0, self.download_complete( success=download_status ) )
 
     # Logic of what to do after the download is done in the background
     def download_complete( self, success="", errorfield="" ):
@@ -324,6 +360,7 @@ class DownloaderApp( ctk.CTk ):
         self.videoinput_frame.enable_entry()
         self.audioinput_frame.enable_entry()
         # Hide Cancel Button
+        self.cancel_btn.configure( state="normal" )
         self.cancel_btn.grid_remove()
 
         # Show Error messages if validation failed
