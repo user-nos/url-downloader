@@ -9,13 +9,33 @@ import pathlib
 import yt_dlp
 from static_ffmpeg import run
 
+# Custom exception to trigger cancellation of yt-dlp process 
 class CancelledException( Exception ):
     pass
 
+# Custom Yt-dlp logger to use GUI textbox as logs
+class CustomYtdlpLogger:
+    def __init__( self, logCallback ):
+        self.log_callback = logCallback
+    
+    def debug( self, msg ):
+        self.log_callback( f"[ENGINE] {msg}" )
+
+    def info( self, msg ):
+        self.log_callback( f"[ENGINE] {msg}" )
+
+    def warning( self, msg ):
+        self.log_callback( f"[WARNING] {msg}" )
+
+    def error( self, msg ):
+        self.log_callback( f"[ERROR] {msg}" )
+
 class DownloadEngine:
-    def __init__( self ):
+    def __init__( self, logCallback ):
         self.cancel_requested = False
         self.current_subprocess = None
+
+        self.log_callback = logCallback
 
         self.temp_dir = os.path.join( os.path.dirname( __file__ ), "temp_workspace" )
 
@@ -45,9 +65,9 @@ class DownloadEngine:
         if os.path.exists( self.temp_dir ):
             try:
                 shutil.rmtree( self.temp_dir )
-                print("[ENGINE] Temporary workspace wiped cleanly from drive.")
+                self.log_callback( "[ENGINE] Temporary workspace wiped cleanly from drive." )
             except Exception as e:
-                print(f"[ENGINE] Error cleaning temp directory: {e}")
+                self.log_callback( f"[ERROR] Error cleaning temp directory: {e}" )
 
     # Universal URL downloader logic
     def StartDownload( self, videoUrl, audioUrl = None, formatPreset = None, userOutputPath = None ):
@@ -76,7 +96,11 @@ class DownloadEngine:
 
         # CASE 1: Two seperate URLS --> Merge into one video file
         if audioUrl:
-            print(f"\n[ENGINE] Downloading & Merging separate Video and Audio links.")
+            self.log_callback( f"[ENGINE] Downloading & Merging separate Video and Audio links." )
+            self.log_callback( f"[ENGINE] Video URL: {videoUrl}" )
+            self.log_callback( f"[ENGINE] Audio URL: {audioUrl}" )
+
+
             output_file = os.path.join( self.temp_dir, output_temp_filename )
             # Common desktop header to prevent basic server blocking
             headers = "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n"
@@ -94,47 +118,60 @@ class DownloadEngine:
             ]
             
             try:
-                self.current_subprocess = subprocess.Popen( cmd )
+                self.current_subprocess = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT, # Merge errors and standard output streams
+                    text=True,  # Returns strings instead of raw bytes
+                    bufsize=1   # Line-buffered for instantaneous stream read
+                )
 
-                # Active polling loop checking for execution end or cancellation
-                while self.current_subprocess.poll() is None:
+                # Show subprocess logs to GUI logs
+                for line in self.current_subprocess.stdout:
+                    # if user cancels process, get out of loop
                     if self.cancel_requested:
-                        # kill process
+                        self.log_callback( "[ENGINE] FFmpeg subprocess terminated via engine request." )
+                        break
+                    if line.strip():
+                        self.log_callback( f"[ENGINE] {line.strip()}" )
+
+                # user cancelled process
+                if self.cancel_requested:
+                    # kill process
                         self.current_subprocess.terminate()
-                        print("[ENGINE] FFmpeg subprocess terminated via engine request.")
                         # wipe temp dir if cancelled
-                        time.sleep( 0.5 )
+                        self.current_subprocess.wait()
                         self._CleanupTempDir()
-                    time.sleep( 0.2 )
+                        return "cancelled"
                 
+                self.current_subprocess.wait()
+
                 # subprocess is done
                 if self.current_subprocess.returncode == 0:
                     # move final file from temp location to final destination user chose
                     output_final_path = os.path.join( output_final_destination, output_temp_filename )
                     shutil.move( output_file, output_final_path )
-                    print(f"\n[SUCCESS] Merged file saved to {output_final_path}")
+                    self.log_callback( f"\n[SUCCESS] Merged file saved to {output_final_path}" )
                     SUCCESS_STATUS = "success"
-
-                    # clean up temp dir after all done
-                    self._CleanupTempDir()
 
                 # cleanup even if failed naturally
                 self._CleanupTempDir()
 
             except Exception as e:
-                print(f"\n[ERROR] FFmpeg execution failed: {e}")
+                self.log_callback( f"\n[ERROR] FFmpeg execution failed: {e}" )
                 SUCCESS_STATUS = "failed"
                 # cleanup even if failed
                 self._CleanupTempDir()
 
         # CASE 2: Standard URL or Singular combined m3u8 link
         else:
-            print(f"\n[ENGINE] Processing via yt-dlp wrapper.")
+            self.log_callback( f"[ENGINE] Processing via yt-dlp." )
+            self.log_callback( f"[ENGINE] Video URL: {videoUrl}" )
 
             # inner function to trigger yt-dlp cancellation if running by triggering an exception
             def YtdlpHook( d ):
                 if self.cancel_requested:
-                    raise Exception( "Clicked Cancel." )
+                    raise CancelledException( "Clicked Cancel." )
 
             output_file = os.path.join( self.temp_dir, "%(title)s.%(ext)s" )
             ydl_opts = {
@@ -142,6 +179,7 @@ class DownloadEngine:
                 'ffmpeg_location': ffmpeg_dir,      # Tells yt-dlp where our virtual env FFmpeg lives
                 'outtmpl': output_file,
                 'quiet': False,
+                'logger': CustomYtdlpLogger( self.log_callback ),
                 'progress_hooks': [ YtdlpHook ],
                 'http_headers': {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -152,7 +190,7 @@ class DownloadEngine:
             # for audio only download
             # MP3 audio only
             if formatPreset == YtdlpFormat.OPTIONS[ 3 ]:
-                print("[ENGINE] Audio extraction requested. Configuring postprocessors...")
+                self.log_callback( "[ENGINE] Audio extraction requested. Configuring postprocessors..." )
 
                 # Add yt-dlp options to get only audio and in mp3 format
                 ydl_opts['postprocessors'] = [
@@ -172,7 +210,7 @@ class DownloadEngine:
 
             # FLAC Audio only
             elif formatPreset == YtdlpFormat.OPTIONS[ 4 ]:
-                print("[ENGINE] Audio extraction requested. Configuring postprocessors...")
+                self.log_callback( "[ENGINE] Audio extraction requested. Configuring postprocessors..." )
 
                 # Add yt-dlp options to get only audio and in mp3 format
                 ydl_opts['postprocessors'] = [
@@ -192,13 +230,13 @@ class DownloadEngine:
 
             # Video Download
             else:
-                print(f"[ENGINE] Video download requested. Preset: {formatPreset}")
+                self.log_callback( f"[ENGINE] Video download requested. Preset: {formatPreset}" )
 
                 # merge into single mkv if needed
                 ydl_opts['merge_output_format'] = 'mkv'
             
             try:
-                print(f"[ENGINE] Launching core downloader with format code: '{ytdlp_format}'")
+                self.log_callback( f"[ENGINE] Launching yt-dlp downloader with format code: '{ytdlp_format}'" )
                 with yt_dlp.YoutubeDL( ydl_opts ) as ydl:
                     # Download video and extract metadata
                     ydl_info_dict = ydl.extract_info( videoUrl, download=True )
@@ -209,8 +247,8 @@ class DownloadEngine:
                     output_file = os.path.join( output_final_destination, file )
                     shutil.move( os.path.join( self.temp_dir, file ), output_file )
                 
-                print(f"\n[SUCCESS] Download complete!\n[ENGINE]File path: {output_file}")
-                print("[ENGINE] The extension may not be the right one. Check your file(s) at mentioned path above.")
+                self.log_callback( f"\n[SUCCESS] Download complete!\n[ENGINE]File path: {output_file}" )
+                self.log_callback( "[ENGINE] The extension may not be the right one. Check your file(s) at mentioned path above." )
                 SUCCESS_STATUS = "success"
 
                 # after done transferring, cleanup temp dir
@@ -219,9 +257,10 @@ class DownloadEngine:
             except CancelledException:
                 # cleanup
                 self._CleanupTempDir()
-                print(f"\n[ENGINE] yt-dlp download cancelled.")
+                self.log_callback( f"\n[ENGINE] yt-dlp download cancelled." )
+                return "cancelled"
             except Exception as e:
-                print(f"\n[ERROR] yt-dlp download failed: {e}")
+                self.log_callback( f"\n[ERROR] yt-dlp download failed: {e}" )
                 SUCCESS_STATUS = "failed"
                 # cleanup
                 self._CleanupTempDir()
