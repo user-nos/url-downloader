@@ -592,6 +592,8 @@ class EntryFrame( ctk.CTkFrame ):
     def __init__( self, master, label, placeholder, errormessage ):
         super().__init__( master )
         self.grid_columnconfigure( 0, weight=1 )
+        self.grid_columnconfigure( 1, weight=0 )
+        self.grid_columnconfigure( 2, weight=0 )
         self.label = label
         self.entryframe_placeholder = placeholder
         self.entryframe_errormessage = errormessage
@@ -606,7 +608,8 @@ class EntryFrame( ctk.CTkFrame ):
             column=0, 
             padx=10, 
             pady=(10,0), 
-            sticky="w" 
+            sticky="w",
+            columnspan=3
         )
         # Input box
         self.entryframe_input = ctk.CTkEntry( 
@@ -617,10 +620,73 @@ class EntryFrame( ctk.CTkFrame ):
         self.entryframe_input.grid( 
             row=1, 
             column=0, 
-            padx=10, 
+            padx=( 10, 5 ), 
             pady=10, 
             sticky="ew" 
         )
+
+        # Delete button for entry
+        # Load icon image
+        try:
+            self.entryframe_deleteimage = ctk.CTkImage(
+                light_image=Image.open( "images/delete_icon.png" ),
+                dark_image=Image.open( "images/delete_icon.png" ),
+                size=( 20, 20 )
+            )
+        except FileNotFoundError:
+            # Fallback to text if image not available
+            self.entryframe_deleteimage = None
+            print( "Icon images not found, Falling back to text." )
+
+        # Add delete button
+        self.entryframe_deletebtn = ctk.CTkButton(
+            self,
+            text="" if self.entryframe_deleteimage else "✖", # Text fallback if no image
+            image=self.entryframe_deleteimage,
+            width=30,
+            height=30,
+            command=self.empty_entry,
+            fg_color="darkred",
+            hover_color="red"
+        )
+        self.entryframe_deletebtn.grid(
+            row=1,
+            column=1,
+            padx=( 0, 5 ),
+            pady=10,
+            sticky="e"
+        )
+
+        # Paste button for entry
+        # Load icon image
+        try:
+            self.entryframe_pasteimage = ctk.CTkImage(
+                light_image=Image.open( "images/paste_icon.png" ),
+                dark_image=Image.open( "images/paste_icon.png" ),
+                size=( 20, 20 )
+            )
+        except FileNotFoundError:
+            # Fallback to text if image not available
+            self.entryframe_pasteimage = None
+            print( "Icon images not found, Falling back to text." )
+
+        # Add paste button
+        self.entryframe_pastebtn = ctk.CTkButton(
+            self,
+            text="" if self.entryframe_pasteimage else "⎘", # Text fallback if no image
+            image=self.entryframe_pasteimage,
+            width=30,
+            height=30,
+            command=self.paste_text
+        )
+        self.entryframe_pastebtn.grid(
+            row=1,
+            column=2,
+            padx=( 0, 10 ),
+            pady=10,
+            sticky="e"
+        )
+
         # Add Error label here
         self.entryframe_error = ctk.CTkLabel(
             self,
@@ -633,7 +699,8 @@ class EntryFrame( ctk.CTkFrame ):
             column=0,
             padx=10,
             pady=10,
-            sticky="ew"
+            sticky="ew",
+            columnspan=3
         )
         self.entryframe_error.grid_remove()
 
@@ -667,6 +734,26 @@ class EntryFrame( ctk.CTkFrame ):
     def hide_error_message( self ):
         self.entryframe_error.grid_remove()
         self.configure( border_width=0, border_color=( "gray70", "gray10" ) )
+
+    # Delete content in entry box
+    def empty_entry( self ):
+        self.entryframe_input.delete( 0, "end" )
+
+    # Paste text into entry box from clipboard
+    def paste_text( self ):
+        try:
+            # Get text from clipboard
+            clipboard_text = self.clipboard_get()
+            
+            if clipboard_text:
+                # Clear current entry box first
+                self.empty_entry()
+                # Insert text into entry box
+                self.entryframe_input.insert( 0, clipboard_text.strip() )
+        
+        except Exception as e:
+            return
+
 
 # Construct Yt-dlp format selection frame
 class OptionMenuFrame( ctk.CTkFrame ):
