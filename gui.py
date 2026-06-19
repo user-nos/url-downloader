@@ -22,24 +22,13 @@ class DownloaderApp( ctk.CTk ):
         self.download_engine = DownloadEngine( self.write_to_log )
 
         # -- Main window --
-        self.title( "My Media Downloader V1" )
+        self.title( "My Media Downloader V1.0" )
         self.geometry( "+500+300" )
         # self.resizable( False, False )
         self.grid_columnconfigure( 0, weight=1 )
 
         # -- UI Elements --
-        self.row = 0
-
-        # # Theme Toggle 
-        # self.themetoggle_frame = ThemeToggleFrame( self )
-        # self.themetoggle_frame.grid(
-        #     row=self.row,
-        #     column=0,
-        #     padx=10,
-        #     pady=10,
-        #     sticky="ew"
-        # )
-        # self.row += 1
+        self.downloadtab_row = 0
 
         # # Scrollabe Frame
         # # Uncomment this part below and change all root elements that
@@ -67,126 +56,145 @@ class DownloaderApp( ctk.CTk ):
             callbackThemetoggle=self.toggle_theme
         )
         self.title_frame.grid( 
-            row=self.row, 
+            row=0, 
             column=0, 
             padx=10,
             pady=(10, 0), 
             sticky="ew" 
         )
-        self.row += 1
+        self.downloadtab_row += 1
 
+        # Tab View
+        self.tab_control = ctk.CTkTabview(
+            self,
+            fg_color="transparent"
+        )
+        self.tab_control.grid(
+            row=1,
+            column=0,
+            padx=10,
+            pady=10,
+            sticky="nsew"
+        )
+        self.tab_control._segmented_button.configure(
+            font=ctk.CTkFont( size=14 )
+        )
+        self.download_tab = self.tab_control.add( "Downloader" )
+        self.settings_tab = self.tab_control.add( "Settings" )
+
+        # ----------------- Tab 1: Downloader -----------------
         # Save Location Entry + Button with file selection dialog
-        self.savelocation_frame = SaveLocationFrame( self )
+        self.savelocation_frame = SaveLocationFrame( self.download_tab )
         self.savelocation_frame.grid(
-            row=self.row,
+            row=self.downloadtab_row,
             column=0,
             padx=10,
             pady=10,
             sticky="ew"
         )
-        self.row += 1
+        self.downloadtab_row += 1
 
         # Mode Selection Radio buttons (single URL / two URLs)
         self.modetoggle_frame = ModeSelectionFrame( 
-            self, 
+            self.download_tab, 
             "Mode Selection", 
             onChangeFunction=self.toggle_mode_selection,
             callback_themetoggle=self.toggle_theme
         )
         self.modetoggle_frame.grid( 
-            row=self.row, 
+            row=self.downloadtab_row, 
             column=0, 
             padx=10, 
             pady=10, 
             sticky="ew"
         )
-        self.row += 1
+        self.downloadtab_row += 1
 
         # Yt-dlp Format selection dropdown
         self.formatselection_frame = OptionMenuFrame(
-            self,
+            self.download_tab,
             label="Select format to download: ",
             options=format_model.YtdlpFormat.OPTIONS
         )
         self.formatselection_frame.grid(
-            row=self.row,
+            row=self.downloadtab_row,
             column=0,
             padx=10,
             pady=5,
             sticky="ew"
         )
-        self.row += 1
+        self.downloadtab_row += 1
 
         # Video URL Input
         self.videoinput_frame = EntryFrame( 
-            self, 
+            self.download_tab, 
             label="Enter your video url/combined link:", 
             placeholder="https://youtube.com/watch=...",
             errormessage="Error"
         )
         self.videoinput_frame.grid( 
-            row=self.row, 
+            row=self.downloadtab_row, 
             column=0, 
             padx=10, 
             pady=10, 
             sticky="ew" 
         )
-        self.row += 1
+        self.downloadtab_row += 1
 
         # Audio URL Input
         self.audioinput_frame = EntryFrame( 
-            self,
+            self.download_tab,
             label="Enter your audio URL:",
             placeholder="https://cdn.../abc.m3u8",
             errormessage="ERror 2"
         )
         self.audioinput_frame.grid( 
-            row=self.row, 
+            row=self.downloadtab_row, 
             column=0, 
             padx=10, 
             pady=10, 
             sticky="ew" 
         )
-        self.row += 1
+        self.downloadtab_row += 1
         self.audioinput_frame.grid_remove()
 
         # Progress Bar
         self.download_progressbar = ctk.CTkProgressBar( 
-            self, 
+            self.download_tab, 
             mode="indeterminate", 
             progress_color="cyan",
             height=20 
         )
         self.download_progressbar.grid( 
-            row=self.row, 
+            row=self.downloadtab_row, 
             column=0, 
             padx=20, 
             pady=20, 
             sticky="ew" 
         )
-        self.row += 1
+        self.downloadtab_row += 1
         self.download_progressbar.grid_remove()
 
         # Download Button
         self.download_btn = ctk.CTkButton( 
-            self, 
+            self.download_tab, 
             text="Download", 
             height=40, 
             command=self.start_download_thread, 
             font=ctk.CTkFont( weight="bold" )
         )
         self.download_btn.grid( 
-            row=self.row, 
+            row=self.downloadtab_row, 
             column=0, 
             padx=20, 
             pady=20, 
             sticky="ew" 
         )
-        self.row += 1
+        self.downloadtab_row += 1
 
         # Cancel Button
         self.cancel_btn = ctk.CTkButton(
-            self,
+            self.download_tab,
             text="Cancel",
             height=40,
             command=self.trigger_cancel,
@@ -195,32 +203,35 @@ class DownloaderApp( ctk.CTk ):
             hover_color="darkred"
         )
         self.cancel_btn.grid(
-            row=self.row,
+            row=self.downloadtab_row,
             column=0,
             padx=20,
             pady=20,
             sticky="ew"
         )
-        self.row += 1
+        self.downloadtab_row += 1
         self.cancel_btn.grid_remove()
 
         # Logs Textbox
         self.logs_textbox = ctk.CTkTextbox(
-            self,
+            self.download_tab,
             width=550,
             height=150,
             font=( "Courier", 12 )
         )
         self.logs_textbox.grid(
-            row=self.row,
+            row=self.downloadtab_row,
             column=0,
             padx=10,
             pady=10,
             sticky="ew"
         )
-        self.row += 1
+        self.downloadtab_row += 1
         self.logs_textbox.configure( state="disabled" ) # Disabled to avoid user inputs
         self.logs_textbox.grid_remove() # Hidden at first, shown after a download is started
+
+        # ----------------- Tab 2: Settings -----------------
+        
 
     # Function to trigger show/hide audio widget based on radio button choice
     def toggle_mode_selection( self, selectedValue ):
@@ -870,3 +881,10 @@ class SaveLocationFrame( ctk.CTkFrame ):
             self.savelocationframe_input.insert( 0, os.path.normpath( selected_path ) )
             self.savelocationframe_input.configure( state="readonly" )
 
+# Construct Settings Frame
+class SettingsFrame( ctk.CTkFrame ):
+    def __init__( self, master ):
+        super().__init__( master )
+        self.grid_columnconfigure( 0, weight=1 )
+
+        
