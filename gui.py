@@ -629,8 +629,8 @@ class EntryFrame( ctk.CTkFrame ):
         # Load icon image
         try:
             self.entryframe_deleteimage = ctk.CTkImage(
-                light_image=Image.open( "images/dark_icon.png" ),
-                dark_image=Image.open( "images/light_icon.png" ),
+                light_image=Image.open( "images/delete_icon.png" ),
+                dark_image=Image.open( "images/delete_icon.png" ),
                 size=( 20, 20 )
             )
         except FileNotFoundError:
@@ -641,11 +641,13 @@ class EntryFrame( ctk.CTkFrame ):
         # Add delete button
         self.entryframe_deletebtn = ctk.CTkButton(
             self,
-            text="" if self.entryframe_deleteimage else "🌓", # Text fallback if no image
+            text="" if self.entryframe_deleteimage else "✖", # Text fallback if no image
             image=self.entryframe_deleteimage,
             width=30,
             height=30,
-            command=self.empty_entry
+            command=self.empty_entry,
+            fg_color="darkred",
+            hover_color="red"
         )
         self.entryframe_deletebtn.grid(
             row=1,
@@ -659,8 +661,8 @@ class EntryFrame( ctk.CTkFrame ):
         # Load icon image
         try:
             self.entryframe_pasteimage = ctk.CTkImage(
-                light_image=Image.open( "images/dark_icon.png" ),
-                dark_image=Image.open( "images/light_icon.png" ),
+                light_image=Image.open( "images/paste_icon.png" ),
+                dark_image=Image.open( "images/paste_icon.png" ),
                 size=( 20, 20 )
             )
         except FileNotFoundError:
@@ -671,11 +673,11 @@ class EntryFrame( ctk.CTkFrame ):
         # Add paste button
         self.entryframe_pastebtn = ctk.CTkButton(
             self,
-            text="" if self.entryframe_pasteimage else "🌓", # Text fallback if no image
+            text="" if self.entryframe_pasteimage else "⎘", # Text fallback if no image
             image=self.entryframe_pasteimage,
             width=30,
             height=30,
-            command=self.empty_entry
+            command=self.paste_text
         )
         self.entryframe_pastebtn.grid(
             row=1,
@@ -736,6 +738,22 @@ class EntryFrame( ctk.CTkFrame ):
     # Delete content in entry box
     def empty_entry( self ):
         self.entryframe_input.delete( 0, "end" )
+
+    # Paste text into entry box from clipboard
+    def paste_text( self ):
+        try:
+            # Get text from clipboard
+            clipboard_text = self.clipboard_get()
+            
+            if clipboard_text:
+                # Clear current entry box first
+                self.empty_entry()
+                # Insert text into entry box
+                self.entryframe_input.insert( 0, clipboard_text.strip() )
+        
+        except Exception as e:
+            return
+
 
 # Construct Yt-dlp format selection frame
 class OptionMenuFrame( ctk.CTkFrame ):
