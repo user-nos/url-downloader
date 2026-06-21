@@ -1,5 +1,6 @@
+from format_model import YtdlpFormat
 from download_engine import DownloadEngine
-import format_model
+from config_manager import ConfigManager
 import os
 import threading
 import customtkinter as ctk
@@ -9,37 +10,28 @@ from CTkToolTip import CTkToolTip
 from tkinter import filedialog
 
 # Creating GUI for downloader script using customtkinter library
-# Setting visual theme of customtkinter
-ctk.set_appearance_mode( "System" )     # Inherits system's appearance mode Dark/Light
-ctk.set_default_color_theme( "dark-blue" )
-
 # Construct main GUI to display
 class DownloaderApp( ctk.CTk ):
     def __init__(self):
         super().__init__()
 
-        # Instantiate DownloadEngine
+        # Instantiate DownloadEngine, ConfigManager
+        self.config_manager = ConfigManager( self.write_to_log )
         self.download_engine = DownloadEngine( self.write_to_log )
 
+        # Setting visual theme of customtkinter
+        ctk.set_appearance_mode( self.config_manager.get_config( "theme" ) )
+        ctk.set_default_color_theme( self.config_manager.get_config( "color_theme" ) )
+
         # -- Main window --
-        self.title( "My Media Downloader V1" )
+        self.title( "Media Downloader V1.0" )
         self.geometry( "+500+300" )
         # self.resizable( False, False )
         self.grid_columnconfigure( 0, weight=1 )
+        self.grid_columnconfigure( 1, weight=1 )
 
         # -- UI Elements --
-        self.row = 0
-
-        # # Theme Toggle 
-        # self.themetoggle_frame = ThemeToggleFrame( self )
-        # self.themetoggle_frame.grid(
-        #     row=self.row,
-        #     column=0,
-        #     padx=10,
-        #     pady=10,
-        #     sticky="ew"
-        # )
-        # self.row += 1
+        self.downloadtab_row = 0
 
         # # Scrollabe Frame
         # # Uncomment this part below and change all root elements that
@@ -64,129 +56,196 @@ class DownloaderApp( ctk.CTk ):
         # Title Label
         self.title_frame = TitleFrame(
             self,
-            callbackThemetoggle=self.toggle_theme
+            callbackThemetoggle=self.toggle_theme,
+            logCallback=self.write_to_log
         )
         self.title_frame.grid( 
-            row=self.row, 
+            row=0, 
             column=0, 
             padx=10,
             pady=(10, 0), 
-            sticky="ew" 
+            sticky="ew",
+            columnspan=2
         )
-        self.row += 1
 
+        # Tab View
+        self.tab_control = ctk.CTkTabview(
+            self,
+            fg_color="transparent"
+        )
+        self.tab_control.grid(
+            row=1,
+            column=0,
+            padx=10,
+            pady=10,
+            sticky="ew",
+            columnspan=2
+        )
+        self.tab_control._segmented_button.configure(
+            font=ctk.CTkFont( size=14 )
+        )
+        self.download_tab = self.tab_control.add( "Downloader" )
+        self.settings_tab = self.tab_control.add( "Settings" )
+
+        # Logs Textbox
+        self.logs_label = ctk.CTkLabel( 
+            self, 
+            text="Logs:"
+        )
+        self.logs_label.grid(
+            row=2,
+            column=0,
+            padx=25,
+            pady=( 5, 5 ),
+            sticky="w"
+        )
+
+        self.logs_clearbtn = ctk.CTkButton( 
+            self,
+            text="Clear Logs",
+            command=self.wipe_logs
+        )
+        self.logs_clearbtn.grid(
+            row=2,
+            column=1,
+            padx=20,
+            pady=( 5, 5 ),
+            sticky="e"
+        )
+
+        self.logs_textbox = ctk.CTkTextbox(
+            self,
+            width=550,
+            height=150,
+            font=( "Courier", 12 )
+        )
+        self.logs_textbox.grid(
+            row=3,
+            column=0,
+            padx=20,
+            pady=( 0, 10 ),
+            sticky="ew",
+            columnspan=2
+        )
+        self.logs_textbox.configure( state="disabled" ) # Disabled to avoid user inputs
+
+        # ----------------- Tab 1: Downloader -----------------
         # Save Location Entry + Button with file selection dialog
-        self.savelocation_frame = SaveLocationFrame( self )
+        self.savelocation_frame = SaveLocationFrame( self.download_tab, "Save Location:" )
         self.savelocation_frame.grid(
-            row=self.row,
+            row=self.downloadtab_row,
             column=0,
             padx=10,
             pady=10,
             sticky="ew"
         )
-        self.row += 1
+        self.savelocation_frame.set( self.config_manager.get_config( "save_path" ) )
+        self.downloadtab_row += 1
 
         # Mode Selection Radio buttons (single URL / two URLs)
         self.modetoggle_frame = ModeSelectionFrame( 
-            self, 
+            self.download_tab, 
             "Mode Selection", 
             onChangeFunction=self.toggle_mode_selection,
             callback_themetoggle=self.toggle_theme
         )
         self.modetoggle_frame.grid( 
-            row=self.row, 
+            row=self.downloadtab_row, 
             column=0, 
             padx=10, 
             pady=10, 
             sticky="ew"
         )
-        self.row += 1
+        self.downloadtab_row += 1
 
         # Yt-dlp Format selection dropdown
         self.formatselection_frame = OptionMenuFrame(
-            self,
+            self.download_tab,
             label="Select format to download: ",
-            options=format_model.YtdlpFormat.OPTIONS
+            options=YtdlpFormat.OPTIONS,
+            variable=self.config_manager.get_config( "preferred_ytdlpformat" )
         )
         self.formatselection_frame.grid(
-            row=self.row,
+            row=self.downloadtab_row,
             column=0,
             padx=10,
             pady=5,
             sticky="ew"
         )
-        self.row += 1
+        self.downloadtab_row += 1
 
         # Video URL Input
         self.videoinput_frame = EntryFrame( 
-            self, 
+            self.download_tab, 
             label="Enter your video url/combined link:", 
             placeholder="https://youtube.com/watch=...",
-            errormessage="Error"
+            errormessage="Error",
+            logCallback=self.write_to_log
         )
         self.videoinput_frame.grid( 
-            row=self.row, 
+            row=self.downloadtab_row, 
             column=0, 
             padx=10, 
             pady=10, 
             sticky="ew" 
         )
-        self.row += 1
+        self.downloadtab_row += 1
 
         # Audio URL Input
         self.audioinput_frame = EntryFrame( 
-            self,
+            self.download_tab,
             label="Enter your audio URL:",
             placeholder="https://cdn.../abc.m3u8",
-            errormessage="ERror 2"
+            errormessage="ERror 2",
+            logCallback=self.write_to_log
         )
         self.audioinput_frame.grid( 
-            row=self.row, 
+            row=self.downloadtab_row, 
             column=0, 
             padx=10, 
             pady=10, 
             sticky="ew" 
         )
-        self.row += 1
+        self.downloadtab_row += 1
         self.audioinput_frame.grid_remove()
 
         # Progress Bar
         self.download_progressbar = ctk.CTkProgressBar( 
-            self, 
+            self.download_tab, 
             mode="indeterminate", 
             progress_color="cyan",
             height=20 
         )
         self.download_progressbar.grid( 
-            row=self.row, 
+            row=self.downloadtab_row, 
             column=0, 
             padx=20, 
             pady=20, 
             sticky="ew" 
         )
-        self.row += 1
+        self.downloadtab_row += 1
         self.download_progressbar.grid_remove()
 
         # Download Button
         self.download_btn = ctk.CTkButton( 
-            self, 
+            self.download_tab, 
             text="Download", 
             height=40, 
             command=self.start_download_thread, 
             font=ctk.CTkFont( weight="bold" )
         )
         self.download_btn.grid( 
-            row=self.row, 
+            row=self.downloadtab_row, 
             column=0, 
             padx=20, 
-            pady=20, 
+            pady=( 20, 10 ) , 
             sticky="ew" 
         )
-        self.row += 1
+        self.downloadtab_row += 1
 
         # Cancel Button
         self.cancel_btn = ctk.CTkButton(
-            self,
+            self.download_tab,
             text="Cancel",
             height=40,
             command=self.trigger_cancel,
@@ -195,32 +254,29 @@ class DownloaderApp( ctk.CTk ):
             hover_color="darkred"
         )
         self.cancel_btn.grid(
-            row=self.row,
+            row=self.downloadtab_row,
             column=0,
             padx=20,
             pady=20,
             sticky="ew"
         )
-        self.row += 1
+        self.downloadtab_row += 1
         self.cancel_btn.grid_remove()
 
-        # Logs Textbox
-        self.logs_textbox = ctk.CTkTextbox(
-            self,
-            width=550,
-            height=150,
-            font=( "Courier", 12 )
+        # ----------------- Tab 2: Settings -----------------
+        self.settings_frame = SettingsFrame(
+            self.settings_tab,
+            self.config_manager,
+            self.write_to_log,
+            self.save_settings
         )
-        self.logs_textbox.grid(
-            row=self.row,
+        self.settings_frame.grid(
+            row=0,
             column=0,
-            padx=10,
-            pady=10,
+            padx=0,
+            pady=0,
             sticky="ew"
         )
-        self.row += 1
-        self.logs_textbox.configure( state="disabled" ) # Disabled to avoid user inputs
-        self.logs_textbox.grid_remove() # Hidden at first, shown after a download is started
 
     # Function to trigger show/hide audio widget based on radio button choice
     def toggle_mode_selection( self, selectedValue ):
@@ -232,18 +288,22 @@ class DownloaderApp( ctk.CTk ):
             self.formatselection_frame.grid_remove()
 
     # Switch theme on button click
-    def toggle_theme( self ):
-        current_appearance = ctk.get_appearance_mode()
-        if current_appearance.lower() == "light":
-            ctk.set_appearance_mode( "Dark" )
+    def toggle_theme( self, new_theme = None ):
+        if new_theme:
+            ctk.set_appearance_mode( new_theme )
             self.title_frame.toggle_tooltip_theme()
             self.modetoggle_frame.toggle_tooltip_theme()
         else:
-            ctk.set_appearance_mode( "Light" )
-            self.title_frame.toggle_tooltip_theme()
-            self.modetoggle_frame.toggle_tooltip_theme()
+            current_appearance = ctk.get_appearance_mode()
+            if current_appearance.lower() == "light":
+                ctk.set_appearance_mode( "Dark" )
+                self.title_frame.toggle_tooltip_theme()
+                self.modetoggle_frame.toggle_tooltip_theme()
+            else:
+                ctk.set_appearance_mode( "Light" )
+                self.title_frame.toggle_tooltip_theme()
+                self.modetoggle_frame.toggle_tooltip_theme()
             
-
     # Trigger cancellation of process when Cancel Button is clicked
     def trigger_cancel( self ):
         # Disable cancel button to avoid double clicks
@@ -393,15 +453,29 @@ class DownloaderApp( ctk.CTk ):
                 topmost=True
             )
 
+    # Save settings values -> triggered when clicking save in settings tab
+    def save_settings( self, selected_theme, selected_colortheme, selected_path, selected_ytdlpformat ):
+        self.config_manager.save_configs( selected_theme, selected_colortheme, selected_path, selected_ytdlpformat )
+
+        # Update theme accordingly
+        self.toggle_theme( self.config_manager.get_config( "theme" ) )
+        ctk.set_default_color_theme( self.config_manager.get_config( "color_theme" ) )
+
+        # Update changed values
+        self.savelocation_frame.set( self.config_manager.get_config( "save_path" ) )
+        self.formatselection_frame.set( self.config_manager.get_config( "preferred_ytdlpformat" ) )
+
+
 # Construct Title part
 class TitleFrame( ctk.CTkFrame ):
-    def __init__( self, master, callbackThemetoggle ):
+    def __init__( self, master, callbackThemetoggle, logCallback ):
         super().__init__( master )
         self.grid_columnconfigure( 0, weight=1 )
         self.grid_columnconfigure( 1, weight=2 )
         self.grid_columnconfigure( 2, weight=1 )
 
         self.callback_themetoggle = callbackThemetoggle
+        self.log_callback = logCallback
 
         # Left spacer placeholder
         self.title_leftspacer = ctk.CTkFrame(
@@ -443,7 +517,7 @@ class TitleFrame( ctk.CTkFrame ):
         except FileNotFoundError:
             # Fallback to text if image not available
             self.themetoggleframe_toggleimage = None
-            print( "Icon images not found, Falling back to text." )
+            self.log_callback( "Icon images not found, Falling back to text." )
 
         # Add toggle button
         self.themetoggleframe_togglebutton = ctk.CTkButton(
@@ -470,6 +544,7 @@ class TitleFrame( ctk.CTkFrame ):
             message="Light mode",
             delay=0.5
         )
+        self.toggle_tooltip_theme()
 
     # Change backgroud of tooltip with theme change as there seem to be a bug about it
     def toggle_tooltip_theme( self ):
@@ -520,8 +595,7 @@ class ModeSelectionFrame( ctk.CTkFrame ):
             text="Single URL", 
             value="single", 
             variable=self.modeselection_variable, 
-            command=self.toggle_mode, 
-            fg_color="cyan" 
+            command=self.toggle_mode
         )
         self.radiobutton_single.grid( 
             row=1, 
@@ -540,8 +614,7 @@ class ModeSelectionFrame( ctk.CTkFrame ):
             text="Split URL", 
             value="split", 
             variable=self.modeselection_variable, 
-            command=self.toggle_mode, 
-            fg_color="cyan" 
+            command=self.toggle_mode
         )
         self.radiobutton_split.grid( 
             row=1, 
@@ -589,7 +662,7 @@ class ModeSelectionFrame( ctk.CTkFrame ):
 
 # Construct Entry part
 class EntryFrame( ctk.CTkFrame ):
-    def __init__( self, master, label, placeholder, errormessage ):
+    def __init__( self, master, label, placeholder, errormessage, logCallback ):
         super().__init__( master )
         self.grid_columnconfigure( 0, weight=1 )
         self.grid_columnconfigure( 1, weight=0 )
@@ -597,6 +670,7 @@ class EntryFrame( ctk.CTkFrame ):
         self.label = label
         self.entryframe_placeholder = placeholder
         self.entryframe_errormessage = errormessage
+        self.log_callback = logCallback
 
         # Label
         self.entryframe_label = ctk.CTkLabel( 
@@ -613,8 +687,7 @@ class EntryFrame( ctk.CTkFrame ):
         )
         # Input box
         self.entryframe_input = ctk.CTkEntry( 
-            self, 
-            width=550, 
+            self,
             placeholder_text=self.entryframe_placeholder 
         )
         self.entryframe_input.grid( 
@@ -636,7 +709,7 @@ class EntryFrame( ctk.CTkFrame ):
         except FileNotFoundError:
             # Fallback to text if image not available
             self.entryframe_deleteimage = None
-            print( "Icon images not found, Falling back to text." )
+            self.log_callback( "Icon images not found, Falling back to text." )
 
         # Add delete button
         self.entryframe_deletebtn = ctk.CTkButton(
@@ -668,7 +741,7 @@ class EntryFrame( ctk.CTkFrame ):
         except FileNotFoundError:
             # Fallback to text if image not available
             self.entryframe_pasteimage = None
-            print( "Icon images not found, Falling back to text." )
+            self.log_callback( "Icon images not found, Falling back to text." )
 
         # Add paste button
         self.entryframe_pastebtn = ctk.CTkButton(
@@ -757,14 +830,15 @@ class EntryFrame( ctk.CTkFrame ):
 
 # Construct Yt-dlp format selection frame
 class OptionMenuFrame( ctk.CTkFrame ):
-    def __init__( self, master, label, options ):
+    def __init__( self, master, label, options, variable ):
         super().__init__( master )
-        self.grid_columnconfigure( 0, weight=1 )
+        self.grid_columnconfigure( 0, weight=2 )
         self.grid_columnconfigure( 1, weight=1 )
         self.label = label
         self.options = options
+        self.variable = variable
 
-        self.optionsmenu_variable = ctk.StringVar( value=format_model.YtdlpFormat.OPTIONS[0] )
+        self.optionsmenu_variable = ctk.StringVar( value=self.variable )
 
         # Label
         self.optionmenuframe_label = ctk.CTkLabel( 
@@ -783,7 +857,8 @@ class OptionMenuFrame( ctk.CTkFrame ):
         self.optionmenuframe_optionsmenu = ctk.CTkOptionMenu(
             self,
             values=self.options,
-            variable=self.optionsmenu_variable
+            variable=self.optionsmenu_variable,
+            anchor="n"
         )
         self.optionmenuframe_optionsmenu.grid(
             row=0,
@@ -796,18 +871,20 @@ class OptionMenuFrame( ctk.CTkFrame ):
     # Get the selected value of the dropdown
     def get( self ):
         return self.optionsmenu_variable.get()
+    
+    # Set a selected value to the dropdown
+    def set( self, variable ):
+        self.optionsmenu_variable = variable
+        self.optionmenuframe_optionsmenu.set( variable )
         
 
 # Construct save location input, button and dialog
 class SaveLocationFrame( ctk.CTkFrame ):
-    def __init__( self, master ):
+    def __init__( self, master, label ):
         super().__init__( master )
         self.grid_columnconfigure( 0, weight=5 )
         self.grid_columnconfigure( 1, weight=1 )
-        self.frametitle = "Save Path Location"
-
-        # get a default location
-        self.defaultlocation = DownloadEngine.GetDownloadsFolderPath()
+        self.frametitle = label
 
         # Adding a title to the frame
         self.savelocationframe_title = ctk.CTkLabel( 
@@ -828,9 +905,9 @@ class SaveLocationFrame( ctk.CTkFrame ):
 
         # Adding entry box to display path
         self.savelocationframe_input = ctk.CTkEntry(
-            self
+            self,
+            width=450
         )
-        self.savelocationframe_input.insert( 0, self.defaultlocation )
         self.savelocationframe_input.configure( state="readonly" )
         self.savelocationframe_input.grid(
             row=1,
@@ -857,6 +934,13 @@ class SaveLocationFrame( ctk.CTkFrame ):
     # Get value in the input box for the path
     def get( self ):
         return self.savelocationframe_input.get()
+    
+    # Set value into entry box
+    def set( self, new_path ):
+        self.savelocationframe_input.configure( state="normal" )
+        self.savelocationframe_input.delete( 0, "end" )
+        self.savelocationframe_input.insert( 0, os.path.normpath( new_path ) )
+        self.savelocationframe_input.configure( state="readonly" )
 
     # Open file dialog to choose path
     def select_path( self ):
@@ -870,3 +954,101 @@ class SaveLocationFrame( ctk.CTkFrame ):
             self.savelocationframe_input.insert( 0, os.path.normpath( selected_path ) )
             self.savelocationframe_input.configure( state="readonly" )
 
+# Construct Settings Frame
+class SettingsFrame( ctk.CTkFrame ):
+    def __init__( self, master, configManager, logCallback, onSaveCollback ):
+        super().__init__( master, fg_color="transparent" )
+        self.config_manager = configManager
+        self.log_callback = logCallback
+        self.on_save_callback = onSaveCollback
+
+        self.grid_columnconfigure( 0, weight=1 )
+        self.settingstab_row = 0
+
+        # Default theme selector
+        self.themeselection_frame = OptionMenuFrame(
+            self,
+            label="Default theme: ",
+            options=[ "System", "Dark", "Light" ],
+            variable=self.config_manager.get_config( "theme" )
+        )
+        self.themeselection_frame.grid(
+            row=self.settingstab_row,
+            column=0,
+            padx=10,
+            pady=10,
+            sticky="ew"
+        )
+        self.settingstab_row += 1
+
+        # Default color theme selector
+        self.colorthemeselection_frame = OptionMenuFrame(
+            self,
+            label="Default color theme: ",
+            options=[ "blue", "dark-blue", "green" ],
+            variable=self.config_manager.get_config( "color_theme" )
+        )
+        self.colorthemeselection_frame.grid(
+            row=self.settingstab_row,
+            column=0,
+            padx=10,
+            pady=10,
+            sticky="ew"
+        )
+        self.settingstab_row += 1
+
+        # Default save path
+        self.savelocation_frame = SaveLocationFrame( self, "Default Save Location:" )
+        self.savelocation_frame.grid(
+            row=self.settingstab_row,
+            column=0,
+            padx=10,
+            pady=10,
+            sticky="ew"
+        )
+        self.savelocation_frame.set( self.config_manager.get_config( "save_path" ) )
+        self.settingstab_row += 1
+
+        # Default ytdlp format
+        self.ytdlpformatselection_frame = OptionMenuFrame(
+            self,
+            label="Default format for Yt-dlp: ",
+            options=YtdlpFormat.OPTIONS,
+            variable=self.config_manager.get_config( "preferred_ytdlpformat" )
+        )
+        self.ytdlpformatselection_frame.grid(
+            row=self.settingstab_row,
+            column=0,
+            padx=10,
+            pady=10,
+            sticky="ew"
+        )
+        self.settingstab_row += 1
+
+        # Save button
+        self.save_btn = ctk.CTkButton( 
+            self,
+            text="Save",
+            height=40, 
+            command=self.trigger_save_settings, 
+            font=ctk.CTkFont( weight="bold" )
+        )
+        self.save_btn.grid( 
+            row=self.settingstab_row, 
+            column=0, 
+            padx=10, 
+            pady=20, 
+            sticky="e" 
+        )
+        self.settingstab_row += 1
+
+    # Saving settings by updating config file
+    def trigger_save_settings( self ):
+        # Get values from GUI first
+        default_theme = self.themeselection_frame.get()
+        default_colortheme = self.colorthemeselection_frame.get()
+        default_savepath = self.savelocation_frame.get()
+        default_ytdlp_format = self.ytdlpformatselection_frame.get()
+
+        # Use method in master class to trigger saving settings
+        self.on_save_callback( default_theme, default_colortheme, default_savepath, default_ytdlp_format )

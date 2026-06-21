@@ -1,7 +1,6 @@
 from format_model import YtdlpFormat
 import os
 import shutil
-# import threading
 import subprocess
 from datetime import datetime
 import time
@@ -78,7 +77,7 @@ class DownloadEngine:
         # Get FFMPEG instance
         ffmpeg_dir = self.GetFFMPEGPath()
         ffmpeg_exe = os.path.join( ffmpeg_dir, "ffmpeg" )
-        output_final_destination = os.path.normpath( userOutputPath )
+        output_final_destination = pathlib.Path( os.path.normpath( userOutputPath ) )
 
         # Create temporary directory to use
         self._CreateTempDir()
@@ -197,7 +196,7 @@ class DownloadEngine:
                     {
                         'key': 'FFmpegExtractAudio',
                         'preferredcodec': 'mp3',
-                        'preferredquality': '192', # 192kbps / bitrate
+                        'preferredquality': '320', # 320kbps / bitrate
                     },
                     {
                         'key': 'FFmpegMetadata',
