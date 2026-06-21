@@ -2,6 +2,8 @@ from format_model import YtdlpFormat
 from download_engine import DownloadEngine
 from config_manager import ConfigManager
 import os
+import platform
+import subprocess
 import threading
 import customtkinter as ctk
 from PIL import Image
@@ -446,12 +448,35 @@ class DownloaderApp( ctk.CTk ):
             self.videoinput_frame.hide_error_message()
             self.audioinput_frame.hide_error_message()
             # Show message box upon completion
-            CTkMessagebox(
-                message="Download successful.",
-                icon="check",
-                option_1="OK",
-                topmost=True
-            )
+            message_box = CTkMessagebox(
+                    message="Download successful.",
+                    icon="check",
+                    option_1="OK",
+                    topmost=True
+                )
+            message_response = message_box.get()
+            if message_response == "OK":
+                self.open_destination_folder()
+
+    # Open destination folder after successful download
+    def open_destination_folder( self ):
+        # Get path first and ensure it exists
+        folder_path = self.savelocation_frame.get()
+        if not os.path.exists( folder_path ):
+            self.write_to_log( f"[ERROR] Cannot open folder. Path does not exist: {folder_path}" )
+            return
+        
+        # Open folder depending on OS
+        current_os = platform.system().lower()
+        try:
+            if current_os == "windows":
+                os.startfile( folder_path )
+            elif current_os == "darwin":    # macOS
+                subprocess.Popen( [ "open", folder_path ] )
+            else:
+                subprocess.Popen( [ "xdg-open", folder_path ] )
+        except Exception as e:
+            self.write_to_log( f"[ERROR] Failed to open folder: {e}" )
 
     # Save settings values -> triggered when clicking save in settings tab
     def save_settings( self, selected_theme, selected_colortheme, selected_path, selected_ytdlpformat ):
