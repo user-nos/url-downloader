@@ -3,6 +3,7 @@ from download_engine import DownloadEngine
 from config_manager import ConfigManager
 import os
 import platform
+import sys
 import subprocess
 import threading
 import customtkinter as ctk
@@ -10,6 +11,17 @@ from PIL import Image
 from CTkMessagebox import CTkMessagebox
 from CTkToolTip import CTkToolTip
 from tkinter import filedialog
+
+# Dynamic paths for using assets
+def get_asset_path( relative_path ):
+    try:
+        # Pyinstaller sets the _MEIPASS attribute automatically
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath( "." )
+
+    return os.path.join( base_path, relative_path )
+
 
 # Creating GUI for downloader script using customtkinter library
 # Construct main GUI to display
@@ -26,7 +38,7 @@ class DownloaderApp( ctk.CTk ):
         ctk.set_default_color_theme( self.config_manager.get_config( "color_theme" ) )
 
         # -- Main window --
-        self.title( "Media Downloader V1.0" )
+        self.title( "Media Downloader v1.0" )
         self.geometry( "+500+300" )
         # self.resizable( False, False )
         self.grid_columnconfigure( 0, weight=1 )
@@ -539,8 +551,8 @@ class TitleFrame( ctk.CTkFrame ):
         # Load icon images
         try:
             self.themetoggleframe_toggleimage = ctk.CTkImage(
-                light_image=Image.open( "images/dark_icon.png" ),
-                dark_image=Image.open( "images/light_icon.png" ),
+                light_image=Image.open( get_asset_path( "images/dark_icon.png" ) ),
+                dark_image=Image.open( get_asset_path( "images/light_icon.png" ) ),
                 size=( 20, 20 )
             )
         except FileNotFoundError:
@@ -731,8 +743,8 @@ class EntryFrame( ctk.CTkFrame ):
         # Load icon image
         try:
             self.entryframe_deleteimage = ctk.CTkImage(
-                light_image=Image.open( "images/delete_icon.png" ),
-                dark_image=Image.open( "images/delete_icon.png" ),
+                light_image=Image.open( get_asset_path( "images/delete_icon.png" ) ),
+                dark_image=Image.open( get_asset_path( "images/delete_icon.png" ) ),
                 size=( 20, 20 )
             )
         except FileNotFoundError:
@@ -763,8 +775,8 @@ class EntryFrame( ctk.CTkFrame ):
         # Load icon image
         try:
             self.entryframe_pasteimage = ctk.CTkImage(
-                light_image=Image.open( "images/paste_icon.png" ),
-                dark_image=Image.open( "images/paste_icon.png" ),
+                light_image=Image.open( get_asset_path( "images/paste_icon.png" ) ),
+                dark_image=Image.open( get_asset_path( "images/paste_icon.png" ) ),
                 size=( 20, 20 )
             )
         except FileNotFoundError:
