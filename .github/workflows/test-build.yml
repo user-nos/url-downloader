@@ -1,0 +1,44 @@
+name: Manual Test Build (Windows Only)
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+jobs:
+  build-windows-test:
+    name: Build & Zip Windows App
+    runs-on: windows-latest
+
+    steps:
+    # Step 1: Pull your repository code down to the Windows runner
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # Step 2: Set up a clean Python environment
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.14'
+
+    # Step 3: Install modules from your requirements.txt + PyInstaller
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    # Step 4: Run the PyInstaller compiler using Windows path syntax (;)
+    - name: Compile with PyInstaller
+      run: |
+        pyinstaller --onedir --noconsole --name="MediaDownloader" --add-data "images;images" gui.py
+
+    # Step 5: Natively compress the compiled folder layout into a true .zip archive
+    - name: Compress Build Folder into ZIP
+      run: Compress-Archive -Path dist/MediaDownloader/* -DestinationPath MediaDownloader.zip
+
+    # Step 6: Upload the resulting zip file back to GitHub for download
+    - name: Upload Zip Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MediaDownloader.zip
+        path: MediaDownloader.zip
+        retention-days: 2 # Keeps the storage footprint clean by expiring in 2 days
