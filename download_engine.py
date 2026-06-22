@@ -3,7 +3,6 @@ import os
 import shutil
 import subprocess
 from datetime import datetime
-import time
 import pathlib
 import yt_dlp
 from static_ffmpeg import run
