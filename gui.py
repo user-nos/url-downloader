@@ -296,6 +296,23 @@ class DownloaderApp( ctk.CTk ):
             sticky="ew"
         )
 
+        self.after( 500, self.verify_ffmpeg )
+
+    # Method to check for ffmpeg paths if present or download then when launched
+    def verify_ffmpeg( self ):
+        import static_ffmpeg
+
+        def worker():
+            try:
+                self.write_to_log( "[ENGINE] Verifying FFmpeg binaries (this may take a moment on first launch)..." )
+                # This triggers the automatic internal download if files are missing
+                static_ffmpeg.add_paths()
+                self.write_to_log( "[ENGINE] FFmpeg status: Ready." )
+            except Exception as e:
+                self.write_to_log( f"[ERROR] Failed to initialize environment binaries: {e}" )
+
+        threading.Thread( target=worker, daemon=True ).start()
+
     # Function to trigger show/hide audio widget based on radio button choice
     def toggle_mode_selection( self, selectedValue ):
         if selectedValue == "single":
