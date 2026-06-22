@@ -87,7 +87,11 @@ class DownloaderApp( ctk.CTk ):
             font=ctk.CTkFont( size=14 )
         )
         self.download_tab = self.tab_control.add( "Downloader" )
+        self.download_tab.grid_columnconfigure( 0, weight=1 )
+        self.download_tab.grid_rowconfigure( 0, weight=1 )
         self.settings_tab = self.tab_control.add( "Settings" )
+        self.settings_tab.grid_columnconfigure( 0, weight=1 )
+        self.settings_tab.grid_rowconfigure( 0, weight=1 )
 
         # Logs Textbox
         self.logs_label = ctk.CTkLabel( 
@@ -473,14 +477,14 @@ class DownloaderApp( ctk.CTk ):
                 os.startfile( folder_path )
             elif current_os == "darwin":    # macOS
                 subprocess.Popen( [ "open", folder_path ] )
-            else:
+            else:   # Linux / Unix
                 subprocess.Popen( [ "xdg-open", folder_path ] )
         except Exception as e:
             self.write_to_log( f"[ERROR] Failed to open folder: {e}" )
 
     # Save settings values -> triggered when clicking save in settings tab
-    def save_settings( self, selected_theme, selected_colortheme, selected_path, selected_ytdlpformat ):
-        self.config_manager.save_configs( selected_theme, selected_colortheme, selected_path, selected_ytdlpformat )
+    def save_settings( self, selected_theme, selected_colortheme, selected_path, selected_ytdlpformat, selected_openfolder_value ):
+        self.config_manager.save_configs( selected_theme, selected_colortheme, selected_path, selected_ytdlpformat, bool( selected_openfolder_value ) )
 
         # Update theme accordingly
         self.toggle_theme( self.config_manager.get_config( "theme" ) )
@@ -1050,6 +1054,22 @@ class SettingsFrame( ctk.CTkFrame ):
         )
         self.settingstab_row += 1
 
+        # Open folder when finished Switch
+        self.openfolder_switch = ctk.CTkSwitch( 
+            self,
+            text="Automatically open destination folder when finished",
+            height=30
+        )
+        self.openfolder_switch.grid(
+            row=self.settingstab_row,
+            column=0,
+            padx=10,
+            pady=10,
+            sticky="n"
+        )
+        self.settingstab_row += 1
+        self.set_open_folder_switch()
+
         # Save button
         self.save_btn = ctk.CTkButton( 
             self,
@@ -1074,6 +1094,14 @@ class SettingsFrame( ctk.CTkFrame ):
         default_colortheme = self.colorthemeselection_frame.get()
         default_savepath = self.savelocation_frame.get()
         default_ytdlp_format = self.ytdlpformatselection_frame.get()
+        default_openfolder = self.openfolder_switch.get()
 
         # Use method in master class to trigger saving settings
-        self.on_save_callback( default_theme, default_colortheme, default_savepath, default_ytdlp_format )
+        self.on_save_callback( default_theme, default_colortheme, default_savepath, default_ytdlp_format, default_openfolder )
+
+    # Turn open folder switch on or off depending on config file
+    def set_open_folder_switch( self ):
+        if bool( self.config_manager.get_config( "open_folder_on_completion" ) ) == True:
+            self.openfolder_switch.select()
+        else:
+            self.openfolder_switch.deselect()

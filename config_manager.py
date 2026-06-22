@@ -62,11 +62,12 @@ class ConfigManager:
             return ""
 
     # Update several configs at once
-    def save_configs( self, selected_theme, selected_colortheme, selected_path, selected_ytdlpformat ):
+    def save_configs( self, selected_theme, selected_colortheme, selected_path, selected_ytdlpformat, selected_openfolder_value ):
         self.configs[ "theme" ] = selected_theme
         self.configs[ "color_theme" ] = selected_colortheme
         self.configs[ "save_path" ] = selected_path
         self.configs[ "preferred_ytdlpformat" ] = selected_ytdlpformat
+        self.configs[ "open_folder_on_completion" ] = selected_openfolder_value
         self._save_to_disk( self.configs )
         self.configs = self.load_config()
 
