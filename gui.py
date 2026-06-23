@@ -47,7 +47,7 @@ class DownloaderApp( ctk.CTk ):
         # -- UI Elements --
         self.downloadtab_row = 0
 
-        # # Scrollabe Frame
+        # # Scrollable Frame
         # # Uncomment this part below and change all root elements that
         # # other widgets are attached to this scrollable frame if you want that
         # self.scrollableframe = ctk.CTkScrollableFrame( 
@@ -302,15 +302,55 @@ class DownloaderApp( ctk.CTk ):
     def verify_ffmpeg( self ):
         import static_ffmpeg
 
+        # Class to intercept output lines and append to gui logs
+        class LogStream:
+            def __init__( self, logCallback ):
+                self.log_callback = logCallback
+                self.buffer = ""
+
+            def write( self, text ):
+                # static-ffmpeg sends text chunk by chunk, so add them together
+                self.buffer += text
+
+                # Push text to gui logs when full line obtained
+                if "\n" in self.buffer or "\r" in self.buffer:
+                    lines = self.buffer.splitlines()
+                    # if line ends with \n or \r, clean and send to gui log
+                    for line in lines[ :-1 ]:
+                        clean_line = line.strip()
+                        if clean_line:
+                            self.log_callback( f"[ENGINE] [FFmpeg Setup] {clean_line}" )
+                    
+                    # Keep incomplete lines in buffer
+                    self.buffer = lines[ -1 ] if not self.buffer.endswith( ("\n", "\r") ) else ""
+
+            def flush( self ):
+                # Send the remaining buffer if any
+                if self.buffer.strip():
+                    self.log_callback( f"[ENGINE] [FFmpeg Setup] {self.buffer.strip()}" )
+                    self.buffer = ""
+
         def worker():
+            # Backup original stdout and stderr
+            original_stdout = sys.stdout
+            original_stderr = sys.stderr
+
             self.show_progress_bar()
             try:
                 self.write_to_log( "[ENGINE] Verifying FFmpeg binaries (this may take a moment on first launch)..." )
+                # Instantiate custom log stream to be used in static-ffmpeg
+                log_stream = LogStream( self.write_to_log )
+                # Overwrite stdout and stderr
+                sys.stdout = log_stream
+                sys.stderr = log_stream
                 # Trigger the automatic internal download if files are missing
                 static_ffmpeg.add_paths()
                 self.write_to_log( "[ENGINE] FFmpeg status: Ready." )
             except Exception as e:
                 self.write_to_log( f"[ERROR] Failed to initialize environment binaries: {e}" )
+            finally:
+                sys.stdout = original_stdout
+                sys.stderr = original_stderr
 
             self.hide_progress_bar()
                 
@@ -528,8 +568,8 @@ class DownloaderApp( ctk.CTk ):
 
         # Update theme accordingly
         self.toggle_theme( self.config_manager.get_config( "theme" ) )
-        ctk.set_default_color_theme( self.config_manager.get_config( "color_theme" ) )
-
+        self.after( 100, ctk.set_default_color_theme( self.config_manager.get_config( "color_theme" ) ) )
+        
         # Update changed values
         self.savelocation_frame.set( self.config_manager.get_config( "save_path" ) )
         self.formatselection_frame.set( self.config_manager.get_config( "preferred_ytdlpformat" ) )
