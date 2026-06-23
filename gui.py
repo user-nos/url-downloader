@@ -532,15 +532,14 @@ class DownloaderApp( ctk.CTk ):
             self.videoinput_frame.hide_error_message()
             self.audioinput_frame.hide_error_message()
             # Show message box upon completion
-            message_box = CTkMessagebox(
-                    message="Download successful.",
-                    icon="check",
-                    option_1="OK",
-                    topmost=True
-                )
-            message_response = message_box.get()
-            if message_response == "OK":
-                self.open_destination_folder()
+            CTkMessagebox(
+                title="Success",
+                message="Download successful.",
+                icon="check",
+                option_1="OK",
+                topmost=True
+            )
+            self.after( 100, self.open_destination_folder )
 
     # Open destination folder after successful download
     def open_destination_folder( self ):
