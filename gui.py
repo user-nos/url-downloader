@@ -303,14 +303,17 @@ class DownloaderApp( ctk.CTk ):
         import static_ffmpeg
 
         def worker():
+            self.show_progress_bar()
             try:
                 self.write_to_log( "[ENGINE] Verifying FFmpeg binaries (this may take a moment on first launch)..." )
-                # This triggers the automatic internal download if files are missing
+                # Trigger the automatic internal download if files are missing
                 static_ffmpeg.add_paths()
                 self.write_to_log( "[ENGINE] FFmpeg status: Ready." )
             except Exception as e:
                 self.write_to_log( f"[ERROR] Failed to initialize environment binaries: {e}" )
 
+            self.hide_progress_bar()
+                
         threading.Thread( target=worker, daemon=True ).start()
 
     # Function to trigger show/hide audio widget based on radio button choice
@@ -364,15 +367,26 @@ class DownloaderApp( ctk.CTk ):
         self.logs_textbox.delete( "0.0", "end" )
         self.logs_textbox.see( "0.0" )
         self.logs_textbox.configure( state="disabled" )
+
+    # Remove Download btn and Show progress bar
+    def show_progress_bar( self ):
+        # Remove download button then show progress bar
+        self.download_btn.grid_remove()
+        self.download_progressbar.grid()
+        self.download_progressbar.start()
+
+    # Hide Progress bar and Show Download btn
+    def hide_progress_bar( self ):
+        self.download_progressbar.stop()
+        self.download_progressbar.grid_remove()
+        self.download_btn.grid()
     
     # Logic behind clicking the "Download" button
     # Start the download logic in a thread so the GUI does not freeze up
     def start_download_thread( self ):
         # Remove the download button so it does not get clicked again
-        self.download_btn.grid_remove()
         # Show and start the progress bar
-        self.download_progressbar.grid()
-        self.download_progressbar.start()
+        self.show_progress_bar()
         # Disable entries
         self.videoinput_frame.disable_entry()
         self.audioinput_frame.disable_entry()
@@ -380,7 +394,6 @@ class DownloaderApp( ctk.CTk ):
         self.cancel_btn.grid()
         # Show Logs textbox
         self.logs_textbox.grid()
-        self.wipe_logs()
         
         # Get selected Mode, Video URL & Audio URL
         modeSelected = self.modetoggle_frame.get().strip()
@@ -448,9 +461,7 @@ class DownloaderApp( ctk.CTk ):
     # Logic of what to do after the download is done in the background
     def download_complete( self, success="", errorfield="" ):
         # Remove progress bar and make Download button available again
-        self.download_progressbar.stop()
-        self.download_progressbar.grid_remove()
-        self.download_btn.grid()
+        self.hide_progress_bar()
         # Enable entries again
         self.videoinput_frame.enable_entry()
         self.audioinput_frame.enable_entry()
