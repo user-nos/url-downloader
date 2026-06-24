@@ -414,12 +414,14 @@ class DownloaderApp( ctk.CTk ):
         self.download_btn.grid_remove()
         self.download_progressbar.grid()
         self.download_progressbar.start()
+        self.tab_control.configure( state="disabled" )
 
     # Hide Progress bar and Show Download btn
     def hide_progress_bar( self ):
         self.download_progressbar.stop()
         self.download_progressbar.grid_remove()
         self.download_btn.grid()
+        self.tab_control.configure( state="normal" )
     
     # Logic behind clicking the "Download" button
     # Start the download logic in a thread so the GUI does not freeze up

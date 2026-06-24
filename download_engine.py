@@ -66,6 +66,7 @@ class DownloadEngine:
                 self.log_callback( "[ENGINE] Temporary workspace wiped cleanly from drive." )
             except Exception as e:
                 self.log_callback( f"[ERROR] Error cleaning temp directory: {e}" )
+                self.log_callback( f"Please delete the temporary workscape manually: {self.temp_dir}" )
 
     # Universal URL downloader logic
     def StartDownload( self, videoUrl, audioUrl = None, formatPreset = None, userOutputPath = None ):
