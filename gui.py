@@ -543,23 +543,28 @@ class DownloaderApp( ctk.CTk ):
 
     # Open destination folder after successful download
     def open_destination_folder( self ):
-        # Get path first and ensure it exists
-        folder_path = self.savelocation_frame.get()
-        if not os.path.exists( folder_path ):
-            self.write_to_log( f"[ERROR] Cannot open folder. Path does not exist: {folder_path}" )
-            return
-        
-        # Open folder depending on OS
-        current_os = platform.system().lower()
-        try:
-            if current_os == "windows":
-                os.startfile( folder_path )
-            elif current_os == "darwin":    # macOS
-                subprocess.Popen( [ "open", folder_path ] )
-            else:   # Linux / Unix
-                subprocess.Popen( [ "xdg-open", folder_path ] )
-        except Exception as e:
-            self.write_to_log( f"[ERROR] Failed to open folder: {e}" )
+        # Add check if option is chosen in settings
+        if bool( self.config_manager.get_config( "open_folder_on_completion" ) ) == True:
+            # Get path first and ensure it exists
+            folder_path = os.path.normpath( self.savelocation_frame.get().strip() )
+            if not os.path.exists( folder_path ):
+                self.write_to_log( f"[ERROR] Cannot open folder. Path does not exist: {folder_path}" )
+                return
+            
+            # Open folder depending on OS
+            current_os = platform.system().lower()
+            try:
+                self.write_to_log( f"[GUI] Opening destination folder. OS: {current_os}" )
+                if current_os == "windows":
+                    subprocess.Popen( f'explorer.exe "{folder_path}"' )
+                elif current_os == "darwin":    # macOS
+                    subprocess.Popen( [ "open", folder_path ] )
+                else:   # Linux / Unix
+                    subprocess.Popen( [ "xdg-open", folder_path ] )
+            except Exception as e:
+                self.write_to_log( f"[ERROR] Failed to open folder: {e}" )
+
+        return
 
     # Save settings values -> triggered when clicking save in settings tab
     def save_settings( self, selected_theme, selected_colortheme, selected_path, selected_ytdlpformat, selected_openfolder_value ):
