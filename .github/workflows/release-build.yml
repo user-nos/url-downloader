@@ -93,6 +93,7 @@ jobs:
       with:
         name: ${{ matrix.archive_name }}
         path: ${{ matrix.archive_name }}
+        retention-days: 2
 
   create-github-release:
     name: Publish Official GitHub Release
