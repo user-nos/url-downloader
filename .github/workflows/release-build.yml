@@ -17,15 +17,15 @@ on:
         required: true
         type: string
         default: |
-          ## Multi-Platform Standalone Deployment
+          ## Multi-Platform Standalone Deployment  
           
-          ### Installation Instructions
-          - **Windows & MacOS:** Download the `.zip` archive, extract it completely, and run the app.
-          - **Linux:** Download the `.tar.gz` archive, extract it via terminal (`tar -xzvf filename.tar.gz`), and run the executable.
+          ### Installation Instructions  
+          - **Windows & MacOS:** Download the `.zip` archive, extract it completely, and run the app.  
+          - **Linux:** Download the `.tar.gz` archive, extract it via terminal (`tar -xzvf filename.tar.gz`), and run the executable.  
           
-          ### Patch Notes / Changelog
-          - Initial multi-platform bundle release.
-          - Enhanced background FFmpeg automatic configuration.
+          ### Patch Notes / Changelog  
+          - Initial multi-platform bundle release.  
+          - Enhanced background FFmpeg automatic configuration.  
 
 jobs:
   build-and-archive:
