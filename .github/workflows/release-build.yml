@@ -1,0 +1,131 @@
+name: Manual Production Release (Deploy All Platforms)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Release Version Tag (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+      is_prerelease:
+        description: 'Mark as Pre-release? (Check if this is an unstable testing/beta build)'
+        required: true
+        type: boolean
+        default: false
+      release_body:
+        description: 'Release Notes Content (Markdown supported)'
+        required: true
+        type: string
+        default: |
+          ## Multi-Platform Standalone Deployment
+          
+          ### Installation Instructions
+          - **Windows & MacOS:** Download the `.zip` archive, extract it completely, and run the app.
+          - **Linux:** Download the `.tar.gz` archive, extract it via terminal (`tar -xzvf filename.tar.gz`), and run the executable.
+          
+          ### Patch Notes / Changelog
+          - Initial multi-platform bundle release.
+          - Enhanced background FFmpeg automatic configuration.
+
+jobs:
+  build-and-archive:
+    name: Build & Pack on ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            asset_path: "images;images"
+            archive_name: "MediaDownloader-Windows.zip"
+          - os: macos-latest
+            asset_path: "images:images"
+            archive_name: "MediaDownloader-MacOS.zip"
+          - os: ubuntu-latest
+            asset_path: "images:images"
+            archive_name: "MediaDownloader-Linux.tar.gz"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.14'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Install Linux GUI Dependencies
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-tk tk-dev
+
+    - name: Compile with PyInstaller
+      run: |
+        pyinstaller --onedir --noconsole --name="MediaDownloader" --add-data "${{ matrix.asset_path }}" main_app.py
+
+    # Cross-Platform Compression Routing
+    - name: Compress Build Folder into ZIP (Windows)
+      if: matrix.os == 'windows-latest'
+      run: Compress-Archive -Path dist/MediaDownloader/* -DestinationPath ${{ matrix.archive_name }}
+
+    - name: Compress Build Folder into ZIP (Mac)
+      if: matrix.os == 'macos-latest'
+      run: |
+        cd dist/MediaDownloader
+        zip -r ../../${{ matrix.archive_name }} .
+
+    - name: Compress Build Folder into TAR.GZ (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        cd dist/
+        tar -czf ../${{ matrix.archive_name }} MediaDownloader/
+
+    - name: Upload Temporary Archive Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.archive_name }}
+        path: ${{ matrix.archive_name }}
+
+  create-github-release:
+    name: Publish Official GitHub Release
+    needs: build-and-archive
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download Windows ZIP
+      uses: actions/download-artifact@v4
+      with:
+        name: MediaDownloader-Windows.zip
+
+    - name: Download MacOS ZIP
+      uses: actions/download-artifact@v4
+      with:
+        name: MediaDownloader-MacOS.zip
+
+    - name: Download Linux TAR.GZ
+      uses: actions/download-artifact@v4
+      with:
+        name: MediaDownloader-Linux.tar.gz
+
+    - name: Create Release Container
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.event.inputs.version_tag }}
+        name: Release ${{ github.event.inputs.version_tag }}
+        body: ${{ github.event.inputs.release_body }}
+        draft: false
+        prerelease: ${{ github.event.inputs.is_prerelease }}
+        files: |
+          MediaDownloader-Windows.zip
+          MediaDownloader-MacOS.zip
+          MediaDownloader-Linux.tar.gz
