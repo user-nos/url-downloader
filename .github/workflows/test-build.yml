@@ -11,11 +11,11 @@ jobs:
     steps:
     # Step 1: Pull your repository code down to the Windows runner
     - name: Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     # Step 2: Set up a clean Python environment
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.14'
 
