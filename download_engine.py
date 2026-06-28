@@ -211,7 +211,7 @@ class DownloadEngine:
             elif formatPreset == YtdlpFormat.OPTIONS[ 4 ]:
                 self.log_callback( "[ENGINE] Audio extraction requested. Configuring postprocessors..." )
 
-                # Add yt-dlp options to get only audio and in mp3 format
+                # Add yt-dlp options to get only audio and in FLAC format
                 ydl_opts['postprocessors'] = [
                     {
                         'key': 'FFmpegExtractAudio',
