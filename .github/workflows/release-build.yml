@@ -35,13 +35,13 @@ jobs:
         os: [windows-latest, macos-latest, ubuntu-latest]
         include:
           - os: windows-latest
-            asset_path: "images;images"
+            asset_separator: ";"
             archive_name: "MediaDownloader-Windows.zip"
           - os: macos-latest
-            asset_path: "images:images"
+            asset_separator: ":"
             archive_name: "MediaDownloader-MacOS.zip"
           - os: ubuntu-latest
-            asset_path: "images:images"
+            asset_separator: ":"
             archive_name: "MediaDownloader-Linux.tar.gz"
 
     runs-on: ${{ matrix.os }}
@@ -69,7 +69,7 @@ jobs:
 
     - name: Compile with PyInstaller
       run: |
-        pyinstaller --onedir --noconsole --name="MediaDownloader" --add-data "${{ matrix.asset_path }}" main_app.py
+        pyinstaller --onedir --noconsole --name="MediaDownloader" --add-data "images${{ matrix.asset_separator }}images" --add-data "user_manual.pdf${{ matrix.asset_separator }}." main_app.py
 
     # Cross-Platform Compression Routing
     - name: Compress Build Folder into ZIP (Windows)

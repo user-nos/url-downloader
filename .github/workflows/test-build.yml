@@ -29,7 +29,7 @@ jobs:
     # Step 4: Run the PyInstaller compiler using Windows path syntax (;)
     - name: Compile with PyInstaller
       run: |
-        pyinstaller --onedir --noconsole --name="MediaDownloader" --add-data "images;images" main_app.py
+        pyinstaller --onedir --noconsole --name="MediaDownloader" --add-data "images;images" --add-data "user_manual.pdf;." main_app.py
 
     # Step 5: Natively compress the compiled folder layout into a true .zip archive
     - name: Compress Build Folder into ZIP
