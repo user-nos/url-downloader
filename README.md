@@ -1,8 +1,8 @@
 # MediaDownloader
 A sleek, portable, multi-platform desktop application built to download your favorite media assets cleanly, securely, and with zero background fluff. Powered by Python and python libraries such as CustomTkinter, Yt-dlp and static-ffmpeg.
 
-<img src="images/user_manual/mediadownloader1.png" alt="MediaDownloader Main Dark Interface" width="350"/>
-<img src="images/user_manual/mediadownloader2.png" alt="MediaDownloader Main Light Interface" width="350"/>
+<img src="images/user_manual/mediadownloader1.png" alt="MediaDownloader Main Dark Interface" width="325"/>
+<img src="images/user_manual/mediadownloader2.png" alt="MediaDownloader Main Light Interface" width="325"/>
 
 
 ## Key Features
