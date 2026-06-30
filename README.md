@@ -42,8 +42,8 @@ If you want to run the raw source code inside your own virtual environment:
 
 1. Clone the repository:
     ``` Bash
-    git clone https://github.com/yourusername/MediaDownloader.git
-    cd MediaDownloader
+    git clone https://github.com/user-nos/url-downloader.git
+    cd url-downloader
     ```
 
 2. Create and activate a clean Python 3.11 virtual environment:
