@@ -67,9 +67,14 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y python3-tk tk-dev
 
+    - name: Download and Cache FFmpeg Binaries Locally
+      run: |
+        # This executes a tiny inline script to force the package to fetch the current platform binaries
+        python -c "import static_ffmpeg; static_ffmpeg.add_paths()"
+
     - name: Compile with PyInstaller
       run: |
-        pyinstaller --onedir --noconsole --name="MediaDownloader" --add-data "images${{ matrix.asset_separator }}images" main_app.py
+        pyinstaller --onedir --noconsole --name="MediaDownloader" --collect-all static_ffmpeg --add-data "images${{ matrix.asset_separator }}images" main_app.py
 
     # Manually drop the PDF right next to the .exe/binary at the root level of the bundle
     - name: Inject User Manual next to Executable (Windows)
