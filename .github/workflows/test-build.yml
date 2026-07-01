@@ -17,7 +17,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: '3.14'
+        python-version: '3.11'
 
     # Step 3: Install modules from your requirements.txt + PyInstaller
     - name: Install Dependencies
@@ -29,15 +29,19 @@ jobs:
     # Step 4: Run the PyInstaller compiler using Windows path syntax (;)
     - name: Compile with PyInstaller
       run: |
-        pyinstaller --onedir --noconsole --name="MediaDownloader" --add-data "images;images" --add-data "user_manual.pdf;." main_app.py
+        pyinstaller --onedir --noconsole --name="MediaDownloader" --add-data "images;images" main_app.py
 
-    # Step 5: Natively compress the compiled folder layout into a true .zip archive
+    # Step 5: Manually drop the PDF right next to the .exe/binary at the root level of the bundle
+    - name: Inject User Manual next to Executable (Windows)
+      run: copy user_manual.pdf dist\MediaDownloader\
+
+    # Step 6: Natively compress the compiled folder layout into a true .zip archive
     - name: Compress Build Folder into ZIP
       run: Compress-Archive -Path dist/MediaDownloader/* -DestinationPath MediaDownloader.zip
 
-    # Step 6: Upload the resulting zip file back to GitHub for download
+    # Step 7: Upload the resulting zip file back to GitHub for download
     - name: Upload Zip Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: MediaDownloader.zip
         path: MediaDownloader.zip

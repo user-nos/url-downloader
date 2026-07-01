@@ -1,8 +1,8 @@
 # MediaDownloader
 A sleek, portable, multi-platform desktop application built to download your favorite media assets cleanly, securely, and with zero background fluff. Powered by Python and python libraries such as CustomTkinter, Yt-dlp and static-ffmpeg.
 
-<img src="images/user_manual/mediadownloader1.png" alt="MediaDownloader Main Dark Interface" width="350"/>
-<img src="images/user_manual/mediadownloader2.png" alt="MediaDownloader Main Light Interface" width="350"/>
+<img src="images/user_manual/mediadownloader1.png" alt="MediaDownloader Main Dark Interface" width="325"/>
+<img src="images/user_manual/mediadownloader2.png" alt="MediaDownloader Main Light Interface" width="325"/>
 
 
 ## Key Features
@@ -42,8 +42,8 @@ If you want to run the raw source code inside your own virtual environment:
 
 1. Clone the repository:
     ``` Bash
-    git clone https://github.com/yourusername/MediaDownloader.git
-    cd MediaDownloader
+    git clone https://github.com/user-nos/url-downloader.git
+    cd url-downloader
     ```
 
 2. Create and activate a clean Python 3.11 virtual environment:

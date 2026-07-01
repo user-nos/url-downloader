@@ -8,7 +8,7 @@ on:
         required: true
         default: 'v1.0.0'
       is_prerelease:
-        description: 'Mark as Pre-release? (Check if this is an unstable testing/beta build)'
+        description: 'Pre-release'
         required: true
         type: boolean
         default: false
@@ -53,7 +53,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: '3.14'
+        python-version: '3.11'
 
     - name: Install Dependencies
       run: |
@@ -69,7 +69,16 @@ jobs:
 
     - name: Compile with PyInstaller
       run: |
-        pyinstaller --onedir --noconsole --name="MediaDownloader" --add-data "images${{ matrix.asset_separator }}images" --add-data "user_manual.pdf${{ matrix.asset_separator }}." main_app.py
+        pyinstaller --onedir --noconsole --name="MediaDownloader" --add-data "images${{ matrix.asset_separator }}images" main_app.py
+
+    # Manually drop the PDF right next to the .exe/binary at the root level of the bundle
+    - name: Inject User Manual next to Executable (Windows)
+      if: matrix.os == 'windows-latest'
+      run: copy user_manual.pdf dist\MediaDownloader\
+
+    - name: Inject User Manual next to Executable (Mac/Linux)
+      if: matrix.os != 'windows-latest'
+      run: cp user_manual.pdf dist/MediaDownloader/
 
     # Cross-Platform Compression Routing
     - name: Compress Build Folder into ZIP (Windows)
@@ -89,7 +98,7 @@ jobs:
         tar -czf ../${{ matrix.archive_name }} MediaDownloader/
 
     - name: Upload Temporary Archive Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.archive_name }}
         path: ${{ matrix.archive_name }}
@@ -104,17 +113,17 @@ jobs:
 
     steps:
     - name: Download Windows ZIP
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: MediaDownloader-Windows.zip
 
     - name: Download MacOS ZIP
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: MediaDownloader-MacOS.zip
 
     - name: Download Linux TAR.GZ
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: MediaDownloader-Linux.tar.gz
 
