@@ -29,7 +29,7 @@ jobs:
     # Step 4: Run the PyInstaller compiler using Windows path syntax (;)
     - name: Compile with PyInstaller
       run: |
-        pyinstaller --onedir --noconsole --name="MediaDownloader" --add-data "images;images" main_app.py
+        pyinstaller --onedir --name="MediaDownloader" --add-data "images;images" main_app.py
 
     # Step 5: Manually drop the PDF right next to the .exe/binary at the root level of the bundle
     - name: Inject User Manual next to Executable (Windows)
