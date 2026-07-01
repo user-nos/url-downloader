@@ -47,29 +47,29 @@ class DownloaderApp( ctk.CTk ):
         # -- UI Elements --
         self.downloadtab_row = 0
 
-        # # Scrollable Frame
-        # # Uncomment this part below and change all root elements that
-        # # other widgets are attached to this scrollable frame if you want that
-        # self.scrollableframe = ctk.CTkScrollableFrame( 
-        #     self, 
-        #     width=600, 
-        #     height=550, 
-        #     corner_radius=5, 
-        #     fg_color="transparent", 
-        #     label_text="URL Downloader",
-        #     label_fg_color="gray20",
-        #     label_font=ctk.CTkFont( size=20, weight="bold" ),
-        #     scrollbar_button_color="gray20"
-        # )
-        # self.scrollableframe.grid( 
-        #     row=0, 
-        #     column=0, 
-        #     sticky="nsew" 
-        # )
+        # Scrollable Frame
+        # Uncomment this part below and change all root elements that
+        # other widgets are attached to this scrollable frame if you want that
+        self.scrollableframe = ctk.CTkScrollableFrame( 
+            self, 
+            width=650, 
+            height=750, 
+            corner_radius=5, 
+            fg_color="transparent", 
+            # label_text="URL Downloader",
+            label_fg_color="gray20",
+            label_font=ctk.CTkFont( size=20, weight="bold" ),
+            scrollbar_button_color="gray20"
+        )
+        self.scrollableframe.grid( 
+            row=0, 
+            column=0, 
+            sticky="nsew" 
+        )
 
         # Title Label
         self.title_frame = TitleFrame(
-            self,
+            self.scrollableframe,
             callbackThemetoggle=self.toggle_theme,
             logCallback=self.write_to_log
         )
@@ -84,7 +84,7 @@ class DownloaderApp( ctk.CTk ):
 
         # Tab View
         self.tab_control = ctk.CTkTabview(
-            self,
+            self.scrollableframe,
             fg_color="transparent"
         )
         self.tab_control.grid(
@@ -107,7 +107,7 @@ class DownloaderApp( ctk.CTk ):
 
         # Logs Textbox
         self.logs_label = ctk.CTkLabel( 
-            self, 
+            self.scrollableframe, 
             text="Logs:"
         )
         self.logs_label.grid(
@@ -119,7 +119,7 @@ class DownloaderApp( ctk.CTk ):
         )
 
         self.logs_clearbtn = ctk.CTkButton( 
-            self,
+            self.scrollableframe,
             text="Clear Logs",
             command=self.wipe_logs
         )
@@ -132,7 +132,7 @@ class DownloaderApp( ctk.CTk ):
         )
 
         self.logs_textbox = ctk.CTkTextbox(
-            self,
+            self.scrollableframe,
             width=550,
             height=150,
             font=( "Courier", 12 )
