@@ -42,7 +42,8 @@ class DownloaderApp( ctk.CTk ):
         self.geometry( "+500+300" )
         # self.resizable( False, False )
         self.grid_columnconfigure( 0, weight=1 )
-        self.grid_columnconfigure( 1, weight=1 )
+        self.grid_rowconfigure( 0, weight=1 )
+        # self.grid_columnconfigure( 1, weight=1 )
 
         # -- UI Elements --
         self.downloadtab_row = 0
@@ -55,10 +56,7 @@ class DownloaderApp( ctk.CTk ):
             width=650, 
             height=750, 
             corner_radius=5, 
-            fg_color="transparent", 
-            # label_text="URL Downloader",
-            label_fg_color="gray20",
-            label_font=ctk.CTkFont( size=20, weight="bold" ),
+            fg_color="transparent",
             scrollbar_button_color="gray20"
         )
         self.scrollableframe.grid( 
@@ -66,6 +64,8 @@ class DownloaderApp( ctk.CTk ):
             column=0, 
             sticky="nsew" 
         )
+        self.scrollableframe.grid_columnconfigure( 0, weight=1 )
+        self.scrollableframe.grid_columnconfigure( 1, weight=1 )
 
         # Title Label
         self.title_frame = TitleFrame(
